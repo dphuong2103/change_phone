@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">change_phone</string>
+    <string name="permission_control_spoofer_description">Allows sending commands to spoof device info</string>
+</resources>

@@ -9,7 +9,6 @@
         android:label="Permission to control DeviceSpoofer"
         android:protectionLevel="signature" />
     <uses-permission android:name="com.midouz.change_phone.permission.CONTROL_SPOOFER" />
-
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

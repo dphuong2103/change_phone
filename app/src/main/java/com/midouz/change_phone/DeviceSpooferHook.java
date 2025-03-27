@@ -1,5 +1,7 @@
 package com.midouz.change_phone;
 
+import android.net.wifi.WifiInfo;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
@@ -11,33 +13,27 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
 
 public class DeviceSpooferHook implements IXposedHookLoadPackage {
+    private static final String SPOOF_FILE_PATH = SpoofController.SPOOF_FILE_PATH;
     private Properties spoofedProps;
 
-    private String getSpoofFilePath() {
-        return SpoofController.getSpoofFilePath();
-    }
-
-    // Load properties from file
     private void loadSpoofedProperties() {
         spoofedProps = new Properties();
-        String filePath = getSpoofFilePath();
-        File file = new File(filePath);
+        File file = new File(SPOOF_FILE_PATH);
 
         try {
             if (file.exists()) {
                 try (FileInputStream fis = new FileInputStream(file)) {
                     spoofedProps.load(fis);
-                    XposedBridge.log("===Xposed===: Loaded spoofed properties from file: " + filePath);
+                    XposedBridge.log("===Xposed===: Loaded spoofed properties from file: " + SPOOF_FILE_PATH);
                 }
             } else {
-                XposedBridge.log("===Xposed===: Spoofed properties file not found: " + filePath);
+                XposedBridge.log("===Xposed===: Spoofed properties file not found: " + SPOOF_FILE_PATH);
             }
         } catch (Exception e) {
             XposedBridge.log("===Xposed===: Failed to load spoofed properties: " + e.getMessage());
         }
     }
 
-    // Apply spoofed values to Build fields
     private void applyBuildSpoofs() {
         if (spoofedProps == null || spoofedProps.isEmpty()) return;
 
@@ -61,7 +57,6 @@ public class DeviceSpooferHook implements IXposedHookLoadPackage {
         }
     }
 
-    // Helper method to spoof a static field
     private void spoofField(Class<?> clazz, String fieldName, String propKey) {
         if (spoofedProps.containsKey(propKey)) {
             String value = spoofedProps.getProperty(propKey);
@@ -70,20 +65,41 @@ public class DeviceSpooferHook implements IXposedHookLoadPackage {
         }
     }
 
-    // Apply spoofed values to SystemProperties
     private void spoofSystemProperty(String key, XC_MethodHook.MethodHookParam param) {
         if (spoofedProps == null || spoofedProps.isEmpty()) return;
 
         String propKey;
         switch (key) {
-            case "ro.product.model": propKey = "model"; break;
-            case "ro.product.brand": propKey = "brand"; break;
-            case "ro.product.manufacturer": propKey = "manufacturer"; break;
-            case "ro.product.device": propKey = "device"; break;
-            case "ro.product.name": propKey = "product"; break;
-            case "ro.build.fingerprint": propKey = "fingerprint"; break;
-            case "ro.build.version.release": propKey = "release"; break;
-            default: return;
+            case "ro.product.model":
+                propKey = "model";
+                break;
+            case "ro.product.brand":
+                propKey = "brand";
+                break;
+            case "ro.product.manufacturer":
+                propKey = "manufacturer";
+                break;
+            case "ro.product.device":
+                propKey = "device";
+                break;
+            case "ro.product.name":
+                propKey = "product";
+                break;
+            case "ro.build.fingerprint":
+                propKey = "fingerprint";
+                break;
+            case "ro.build.version.release":
+                propKey = "release";
+                break;
+            case "wifi.interface.mac":
+                propKey = "mac_address"; // Assign to avoid null
+                if (spoofedProps.containsKey(propKey)) {
+                    param.setResult(spoofedProps.getProperty(propKey));
+                    XposedBridge.log("===Xposed===: Spoofed wifi.interface.mac to: " + spoofedProps.getProperty(propKey));
+                }
+                return;
+            default:
+                return;
         }
 
         if (spoofedProps.containsKey(propKey)) {
@@ -100,7 +116,7 @@ public class DeviceSpooferHook implements IXposedHookLoadPackage {
         // Load properties once at startup
         loadSpoofedProperties();
 
-        // Apply Build field spoofs for every package
+        // Apply Build field spoofs
         applyBuildSpoofs();
 
         // Hook SystemProperties.get (single argument)
@@ -147,6 +163,31 @@ public class DeviceSpooferHook implements IXposedHookLoadPackage {
                         String result = (String) param.getResult();
                         XposedBridge.log("===Xposed===: SystemProperties.get (with default) - Package: " + lpparam.packageName +
                                 ", Key: " + key + ", Default: " + defaultValue + ", Result: " + result);
+                    }
+                }
+        );
+
+        // Hook WifiManager.getConnectionInfo to spoof MAC address
+        XposedHelpers.findAndHookMethod(
+                "android.net.wifi.WifiManager",
+                lpparam.classLoader,
+                "getConnectionInfo",
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        if (spoofedProps != null) {
+                            WifiInfo wifiInfo = (WifiInfo) param.getResult();
+                            if (wifiInfo != null) {
+                                if (spoofedProps.containsKey("mac_address")) {
+                                    XposedHelpers.setObjectField(wifiInfo, "mMacAddress", spoofedProps.getProperty("mac_address"));
+                                    XposedBridge.log("===Xposed===: Spoofed WifiInfo MAC address to: " + spoofedProps.getProperty("mac_address"));
+                                }
+                                if (spoofedProps.containsKey("ssid")) {
+                                    XposedHelpers.setObjectField(wifiInfo, "mSSID", spoofedProps.getProperty("ssid"));
+                                    XposedBridge.log("===Xposed===: Spoofed WifiInfo SSID to: " + spoofedProps.getProperty("ssid"));
+                                }
+                            }
+                        }
                     }
                 }
         );

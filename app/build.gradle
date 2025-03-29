@@ -29,6 +29,8 @@ android {
 }
 
 dependencies {
+    implementation libs.play.services.ads.identifier
+
     // Use compileOnly instead of provided for Xposed API
     compileOnly files('libs/api-82.jar')
 //    compileOnly 'org.lsposed.api:api:1.0'
@@ -45,6 +47,8 @@ dependencies {
 
     compileOnly 'org.projectlombok:lombok:1.18.36'
     annotationProcessor 'org.projectlombok:lombok:1.18.36'
+    implementation 'com.google.guava:guava:28.0-android'
+    implementation 'androidx.ads:ads-identifier:1.0.0-alpha01'
 }
 
 // Ensure JitPack is available for Xposed API

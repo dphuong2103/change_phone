@@ -9,6 +9,8 @@
         android:label="Permission to control DeviceSpoofer"
         android:protectionLevel="signature" />
     <uses-permission android:name="com.midouz.change_phone.permission.CONTROL_SPOOFER" />
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -43,13 +45,19 @@
 
         <!-- SpoofReceiver with explicit export and no permission restriction -->
         <receiver
-            android:name=".SpoofController"
+            android:name=".SpoofedDeviceInfoReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.midouz.change_phone.SET_SPOOF" />
                 <action android:name="com.midouz.change_phone.UPDATE_SPOOF" />
             </intent-filter>
         </receiver>
-
+        <receiver
+            android:name=".SpoofedGeoReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.midouz.change_phone.SET_GEO" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -1,10 +1,10 @@
 package com.midouz.change_phone;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.location.LocationManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -18,12 +18,15 @@ import android.widget.TextView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.midouz.change_phone.helper.AdIdHelper;
+import com.midouz.change_phone.helper.ScreenSizeHelper;
+
 public class MainActivity extends Activity {
     private static final int LOCATION_PERMISSION_REQUEST = 100;
     private static final int WIFI_PERMISSION_REQUEST = 101;
 
     Button button;
-    TextView device, model, brand, manufacturer, serial, productName, releaseVersion, sdkVersion, mac, fingerprint, androidId, ssid, latitude, longitude;
+    TextView device, model, brand, manufacturer, serial, productName, releaseVersion, sdkVersion, mac, fingerprint, androidId, ssid, latitude, longitude, width, height, adId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,11 +34,6 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         setTextView();
-        button = findViewById(R.id.btn_changeDeviceInfo);
-
-        button.setOnClickListener(v -> {
-            fetchSpoofedDeviceInfo();
-        });
 
         fetchSpoofedDeviceInfo(); // Fetch spoofed values on start
     }
@@ -55,6 +53,9 @@ public class MainActivity extends Activity {
         ssid = findViewById(R.id.txt_ssid);
         latitude = findViewById(R.id.txt_latitude);
         longitude = findViewById(R.id.txt_longitude);
+        width = findViewById(R.id.txt_width);
+        height = findViewById(R.id.txt_height);
+        adId = findViewById(R.id.txt_adId);
     }
 
     private void fetchSpoofedDeviceInfo() {
@@ -75,6 +76,8 @@ public class MainActivity extends Activity {
         // Fetch Wi-Fi and Location data
         fetchWiFiInfo();
         fetchLocation();
+        getAdId();
+        getScreenSize();
     }
 
     private void fetchWiFiInfo() {
@@ -134,5 +137,26 @@ public class MainActivity extends Activity {
                 Log.w("Permissions", "Permission denied by user.");
             }
         }
+    }
+
+    private void getAdId(){
+        AdIdHelper.getAdvertisingId(this, new AdIdHelper.AdIdCallback() {
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onAdIdReceived(String id) {
+                // Use the Advertising ID here
+              adId.setText("Ad ID: " + id);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void getScreenSize(){
+        width.setText("Width: " + ScreenSizeHelper.getScreenWidth(this));
+        height.setText("Height: " + ScreenSizeHelper.getScreenHeight(this));
     }
 }

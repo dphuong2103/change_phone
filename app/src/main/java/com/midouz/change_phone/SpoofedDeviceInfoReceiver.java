@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.midouz.change_phone.helper.FileHelper;
+import com.midouz.change_phone.helper.ResetPhoneStateHelper;
 
 import java.util.Properties;
 import java.util.Random;
@@ -16,6 +17,7 @@ public class SpoofedDeviceInfoReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d("SpoofController", "Received intent: " + intent.toString());
         try {
+            ResetPhoneStateHelper.performDeviceReset(context);
             Properties props = new Properties();
 
             String model = intent.getStringExtra("model");
@@ -54,6 +56,9 @@ public class SpoofedDeviceInfoReceiver extends BroadcastReceiver {
             String height = intent.getStringExtra("height");
             if (height != null) props.setProperty("height", height);
 
+            String imei = intent.getStringExtra("imei");
+            if (imei != null) props.setProperty("imei", imei);
+
             if (!props.isEmpty()) {
                 Log.d("SpoofController", "Received spoofed values: " + props);
                 FileHelper.saveDeviceInfoToFile(context, props);
@@ -61,6 +66,8 @@ public class SpoofedDeviceInfoReceiver extends BroadcastReceiver {
             } else {
                 Log.w("SpoofController", "No values provided in intent, file not modified");
             }
+
+
         } catch (Exception e) {
             Log.e("SpoofController", "Failed to save spoofed values: " + e.getMessage());
         }

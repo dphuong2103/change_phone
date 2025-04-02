@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.location.LocationManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -21,12 +22,14 @@ import androidx.core.content.ContextCompat;
 import com.midouz.change_phone.helper.AdIdHelper;
 import com.midouz.change_phone.helper.ScreenSizeHelper;
 
+import java.util.TimeZone;
+
 public class MainActivity extends Activity {
     private static final int LOCATION_PERMISSION_REQUEST = 100;
     private static final int WIFI_PERMISSION_REQUEST = 101;
 
     Button button;
-    TextView device, model, brand, manufacturer, serial, productName, releaseVersion, sdkVersion, mac, fingerprint, androidId, ssid, latitude, longitude, width, height, adId;
+    TextView device, model, brand, manufacturer, serial, productName, releaseVersion, sdkVersion, mac, fingerprint, androidId, ssid, latitude, longitude, width, height, adId, timeZone;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +59,7 @@ public class MainActivity extends Activity {
         width = findViewById(R.id.txt_width);
         height = findViewById(R.id.txt_height);
         adId = findViewById(R.id.txt_adId);
+        timeZone = findViewById(R.id.txt_timeZone);
     }
 
     private void fetchSpoofedDeviceInfo() {
@@ -104,22 +108,29 @@ public class MainActivity extends Activity {
         }
 
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//        Location lastKnownLocation = null;
-//
-//        if (locationManager != null) {
-//            lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//            if (lastKnownLocation == null) {
-//                lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-//            }
-//        }
-//
-//        if (lastKnownLocation != null) {
-//            latitude.setText(String.valueOf(lastKnownLocation.getLatitude()));
-//            longitude.setText(String.valueOf(lastKnownLocation.getLongitude()));
-//        } else {
-//            latitude.setText("0.0");
-//            longitude.setText("0.0");
-//        }
+        Location lastKnownLocation = null;
+
+        if (locationManager != null) {
+            lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (lastKnownLocation == null) {
+                lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            }
+        }
+
+        if (lastKnownLocation != null) {
+            latitude.setText("latitude: " + String.valueOf(lastKnownLocation.getLatitude()));
+            longitude.setText("longitude: " + String.valueOf(lastKnownLocation.getLongitude()));
+        } else {
+            latitude.setText("latitude: null");
+            longitude.setText("longitude: null");
+        }
+
+        TimeZone tz = TimeZone.getDefault();
+        if(tz != null){
+            timeZone.setText("TimeZone: "+tz.getDisplayName(false, TimeZone.SHORT)+" Timezone id :: " +tz.getID());
+        }else{
+            timeZone.setText("TimeZone: null");
+        }
     }
 
     @Override
@@ -139,13 +150,13 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void getAdId(){
+    private void getAdId() {
         AdIdHelper.getAdvertisingId(this, new AdIdHelper.AdIdCallback() {
             @SuppressLint("SetTextI18n")
             @Override
             public void onAdIdReceived(String id) {
                 // Use the Advertising ID here
-              adId.setText("Ad ID: " + id);
+                adId.setText("Ad ID: " + id);
             }
 
             @Override
@@ -155,7 +166,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void getScreenSize(){
+    private void getScreenSize() {
         width.setText("Width: " + ScreenSizeHelper.getScreenWidth(this));
         height.setText("Height: " + ScreenSizeHelper.getScreenHeight(this));
     }

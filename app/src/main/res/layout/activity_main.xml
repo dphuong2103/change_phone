@@ -17,10 +17,10 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
-            android:id="@+id/txt_file_title"
+            android:id="@+id/txt_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="File Value" />
+            android:text="Spoofed Value" />
 
         <TextView
             android:id="@+id/txt_device"
@@ -145,10 +145,10 @@
         >
 
         <TextView
-            android:id="@+id/txt_spoofed_title"
+            android:id="@+id/txt_file_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Spoofed Value" />
+            android:text="File Value" />
 
         <TextView
             android:id="@+id/txt_file_device"

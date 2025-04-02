@@ -1,6 +1,7 @@
 package com.midouz.change_phone.helper;
 
 import android.app.Activity;
+import android.content.res.Resources;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.WindowManager;
@@ -21,4 +22,5 @@ public class ScreenSizeHelper {
         display.getMetrics(metrics);
         return metrics.heightPixels; // Screen height in pixels
     }
+
 }

@@ -9,8 +9,8 @@ import java.io.FileWriter;
 import java.util.Properties;
 
 public class FileHelper {
-    public static final String SPOOF_DEVICE_INFO_PATH = "/data/local/tmp/spoofed_device_info.properties";
-    public static final String SPOOF_GEO_PATH = "/data/local/tmp/spoofed_geo.properties";
+    public static final String SPOOF_DEVICE_INFO_PATH = "/data/local/tmp/spoof/spoofed_device_info.properties";
+    public static final String SPOOF_GEO_PATH = "/data/local/tmp/spoof/spoofed_geo.properties";
 
     public static void saveDeviceInfoToFile(Context context, Properties props) throws Exception {
         File file = new File(SPOOF_DEVICE_INFO_PATH);

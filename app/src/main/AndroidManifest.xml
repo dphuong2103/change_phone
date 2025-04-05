@@ -49,7 +49,7 @@
 
         <!-- SpoofReceiver with explicit export and no permission restriction -->
         <receiver
-            android:name=".SpoofedDeviceInfoReceiver"
+            android:name=".receiver.SpoofedDeviceInfoReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.midouz.change_phone.SET_SPOOF" />
@@ -57,10 +57,17 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".SpoofedGeoReceiver"
+            android:name=".receiver.SpoofedGeoReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.midouz.change_phone.SET_GEO" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".receiver.ResetPhoneStateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.midouz.change_phone.RESET_PHONE_STATE" />
             </intent-filter>
         </receiver>
     </application>

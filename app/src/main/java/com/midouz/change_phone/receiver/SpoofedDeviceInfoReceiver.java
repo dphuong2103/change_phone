@@ -1,4 +1,4 @@
-package com.midouz.change_phone;
+package com.midouz.change_phone.receiver;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

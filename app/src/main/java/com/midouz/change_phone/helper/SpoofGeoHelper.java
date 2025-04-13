@@ -5,9 +5,11 @@ import android.location.LocationListener;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -313,6 +315,19 @@ public class SpoofGeoHelper {
         } catch (Throwable t) {
             XposedBridge.log("===Xposed===: Failed to initialize hook for FusedLocationProviderClient.requestLocationUpdates for package: " + lpparam.packageName + ", error: " + t.getMessage());
         }
+
+        XposedHelpers.findAndHookMethod(
+                "android.net.wifi.WifiManager",
+                lpparam.classLoader,
+                "getWifiState",
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        int state = (int) param.getResult();
+                        XposedBridge.log("===Xposed===: Wi-Fi State after spoofing: " + state);
+                    }
+                }
+        );
     }
 
     private static void loadSpoofedGeoProperties() {
@@ -323,13 +338,20 @@ public class SpoofGeoHelper {
             if (file.exists()) {
                 try (FileInputStream fis = new FileInputStream(file)) {
                     spoofedGeoProps.load(fis);
-                    XposedBridge.log("===Xposed===: Successfully loaded spoofed geo properties from file: " + FileHelper.SPOOF_GEO_PATH);
+                    XposedBridge.log("===Xposed===: Loaded spoofed geo properties from: " + FileHelper.SPOOF_GEO_PATH);
                 }
             } else {
-                XposedBridge.log("===Xposed===: Spoofed geo properties file not found at: " + FileHelper.SPOOF_GEO_PATH);
+                // Fallback default values
+                spoofedGeoProps.setProperty("latitude", "0.0");
+                spoofedGeoProps.setProperty("longitude", "0.0");
+                spoofedGeoProps.setProperty("time_zone", "UTC");
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    spoofedGeoProps.store(fos, "Default spoofed geo properties");
+                    XposedBridge.log("===Xposed===: Created default spoofed geo properties at: " + FileHelper.SPOOF_GEO_PATH);
+                }
             }
         } catch (Exception e) {
-            XposedBridge.log("===Xposed===: Failed to load spoofed geo properties from " + FileHelper.SPOOF_GEO_PATH + ", error: " + e.getMessage());
+            XposedBridge.log("===Xposed===: Failed to load/create spoofed geo properties: " + e.getMessage());
         }
     }
 
@@ -344,14 +366,17 @@ public class SpoofGeoHelper {
             Location spoofedLocation = new Location(provider != null ? provider : "spoofed");
             spoofedLocation.setLatitude(Double.parseDouble(spoofedGeoProps.getProperty("latitude")));
             spoofedLocation.setLongitude(Double.parseDouble(spoofedGeoProps.getProperty("longitude")));
+            spoofedLocation.setAltitude(0.0);
+            spoofedLocation.setSpeed(0.1f);
+            spoofedLocation.setBearing(0.0f);
             spoofedLocation.setTime(System.currentTimeMillis());
+            spoofedLocation.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
             spoofedLocation.setAccuracy(10.0f);
-            spoofedLocation.setSpeed(0.0f);
             XposedBridge.log("===Xposed===: Created spoofed location with Lat: " +
                     spoofedGeoProps.getProperty("latitude") + ", Lon: " + spoofedGeoProps.getProperty("longitude"));
             return spoofedLocation;
         } catch (NumberFormatException e) {
-            XposedBridge.log("===Xposed===: Failed to create spoofed location due to invalid latitude/longitude: " + e.getMessage());
+            XposedBridge.log("===Xposed===: Invalid latitude/longitude: " + e.getMessage());
             return null;
         } catch (Throwable t) {
             XposedBridge.log("===Xposed===: Unexpected error creating spoofed location: " + t.getMessage());

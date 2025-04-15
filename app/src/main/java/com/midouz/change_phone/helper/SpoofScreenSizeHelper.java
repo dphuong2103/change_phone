@@ -44,8 +44,8 @@ public class SpoofScreenSizeHelper {
 
             int width, height;
             try {
-                width = Integer.parseInt(spoofedScreenSizeProps.getProperty("width"));
-                height = Integer.parseInt(spoofedScreenSizeProps.getProperty("height"));
+                width = Integer.parseInt(spoofedScreenSizeProps.getProperty("WIDTH"));
+                height = Integer.parseInt(spoofedScreenSizeProps.getProperty("HEIGHT"));
             } catch (NumberFormatException e) {
                 XposedBridge.log("===Xposed===: Invalid width or height values in properties for package: " + lpparam.packageName + ", error: " + e.getMessage());
                 return;

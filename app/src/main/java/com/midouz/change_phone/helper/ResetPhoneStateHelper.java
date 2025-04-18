@@ -138,132 +138,109 @@ public class ResetPhoneStateHelper {
             AccountManager accountManager = AccountManager.get(context);
             Account[] accounts = accountManager.getAccounts();
 
+            // Log initial accounts
+            Log.d(TAG, "Found " + accounts.length + " accounts before removal:");
+            for (Account account : accounts) {
+                Log.d(TAG, "Account: " + account.name + " (" + account.type + ")");
+            }
+
+            // Start root process
+            Process process = Runtime.getRuntime().exec("su");
+            DataOutputStream os = new DataOutputStream(process.getOutputStream());
+
+            // Disconnect from internet
+            Log.d(TAG, "Disabling network...");
+            os.writeBytes("svc wifi disable\n");
+            os.writeBytes("svc data disable\n");
+
+            // Stop and disable Google services
+            Log.d(TAG, "Stopping and disabling Google services...");
+            os.writeBytes("am force-stop com.google.android.gms\n");
+            os.writeBytes("am force-stop com.android.vending\n");
+//            os.writeBytes("am force-stop com.google.android.gsf\n");
+            os.writeBytes("pm disable com.google.android.gms\n");
+//            os.writeBytes("pm disable com.google.android.gsf\n");
+
             // Remove accounts via AccountManager
             for (Account account : accounts) {
-                Log.d(TAG, "Removing account: " + account.name + " (" + account.type + ")");
-                try {
-                    // Remove account (requires MANAGE_ACCOUNTS permission)
-                    if (account.type.contains("com.google")) {
+                if (account.type.contains("com.google")) {
+                    Log.d(TAG, "Removing account: " + account.name);
+                    try {
                         accountManager.removeAccountExplicitly(account);
-                        Log.d(TAG, "Removed Google account: " + account.name);
+                        Log.d(TAG, "Removed account: " + account.name);
+                    } catch (SecurityException e) {
+                        Log.w(TAG, "Permission denied for account: " + account.name, e);
                     }
-                } catch (SecurityException e) {
-                    Log.w(TAG, "Permission denied for removing account: " + account.name, e);
                 }
             }
 
-            // Execute root commands for deeper cleanup
-            Process process = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
-
-            // Clear Google Play Services and Play Store data
-            Log.d(TAG, "Clearing Google Play Services and Play Store data...");
+            // Clear app data
+            Log.d(TAG, "Clearing app data...");
             os.writeBytes("pm clear com.google.android.gms\n");
             os.writeBytes("pm clear com.android.vending\n");
-
-            // Clear contacts provider (may store account-related data)
+            os.writeBytes("pm clear com.google.android.gsf\n");
             os.writeBytes("pm clear com.android.providers.contacts\n");
 
-            // Clear account database
-            Log.d(TAG, "Clearing accounts database...");
-            String accountDbPath = "/data/system/users/0/accounts.db";
-            os.writeBytes("sqlite3 " + accountDbPath + " \"DELETE FROM accounts;\"\n");
-            os.writeBytes("sqlite3 " + accountDbPath + " \"DELETE FROM grants;\"\n");
+            // Clear account databases
+            Log.d(TAG, "Clearing account databases...");
+            os.writeBytes("sqlite3 /data/system/users/0/accounts.db \"DELETE FROM accounts; DELETE FROM grants;\"\n");
+            os.writeBytes("sqlite3 /data/system_ce/0/accounts_ce.db \"DELETE FROM accounts; DELETE FROM grants;\"\n");
+            os.writeBytes("sqlite3 /data/system_de/0/accounts_de.db \"DELETE FROM accounts; DELETE FROM grants;\"\n");
+            os.writeBytes("sqlite3 /data/system/sync/accounts.db \"DELETE FROM accounts;\"\n");
 
-            // Clear sync-related data
-            Log.d(TAG, "Clearing sync-related data...");
+            // Clear app caches and files
+            Log.d(TAG, "Clearing app caches and files...");
+            os.writeBytes("rm -rf /data/data/com.google.android.gms/*\n");
+            os.writeBytes("rm -rf /data/data/com.android.vending/*\n");
+            os.writeBytes("rm -rf /data/data/com.google.android.gsf/*\n");
+            os.writeBytes("rm -rf /data/user_de/0/com.google.android.gms/*\n");
+            os.writeBytes("rm -rf /data/user_de/0/com.android.vending/*\n");
+            os.writeBytes("rm -rf /data/user_de/0/com.google.android.gsf/*\n");
+
+            // Clear sync, backup, and credential data
+            Log.d(TAG, "Clearing sync, backup, and credential data...");
             os.writeBytes("rm -rf /data/system/sync/*\n");
-
-            // Clear Google Play Services and Play Store cache directories
-            Log.d(TAG, "Clearing Google app caches...");
-            os.writeBytes("rm -rf /data/data/com.google.android.gms/cache/*\n");
-            os.writeBytes("rm -rf /data/data/com.google.android.gms/files/*\n");
-            os.writeBytes("rm -rf /data/data/com.android.vending/cache/*\n");
-            os.writeBytes("rm -rf /data/data/com.android.vending/files/*\n");
-
-            // Clear credential storage
-            Log.d(TAG, "Clearing credential storage...");
+            os.writeBytes("rm -rf /data/backup/*\n");
+            os.writeBytes("rm -rf /data/misc/backup/*\n");
             os.writeBytes("rm -rf /data/misc/credentials/*\n");
+            os.writeBytes("rm -rf /data/misc/keychain/*\n");
+            os.writeBytes("rm -rf /data/system/users/0/*.account\n");
 
+            // Disable sync and backup
+            Log.d(TAG, "Disabling sync and backup...");
+            os.writeBytes("content call --uri content://com.google.android.gsf.accountsettings/sync --method disableSync\n");
+            os.writeBytes("bmgr enable false\n");
+
+
+
+            // Re-enable Google services
+            Log.d(TAG, "Re-enabling Google services...");
+            os.writeBytes("pm enable com.google.android.gms\n");
+//            os.writeBytes("pm enable com.google.android.gsf\n");
+
+            // Re-enable network
+            Log.d(TAG, "Re-enabling network...");
+            os.writeBytes("svc wifi enable\n");
+            os.writeBytes("svc data enable\n");
+
+            // Close root process
             os.writeBytes("exit\n");
             os.flush();
             int exitValue = process.waitFor();
-            if (exitValue == 0) {
-                Log.i(TAG, "Successfully removed account data.");
-            } else {
-                Log.w(TAG, "Account removal process exited with code: " + exitValue);
+            Log.d(TAG, "Root process exit value: " + exitValue);
+
+            // Verify accounts
+            accounts = accountManager.getAccounts();
+            Log.d(TAG, "Found " + accounts.length + " accounts after removal:");
+            for (Account account : accounts) {
+                Log.d(TAG, "Remaining account: " + account.name + " (" + account.type + ")");
             }
+
+            // Optional: Reboot device
+            // os.writeBytes("reboot\n");
+
         } catch (Exception e) {
             Log.e(TAG, "Error removing account data: " + e.getMessage(), e);
-        }
-    }
-
-    public static void clearUserSettings() {
-        Log.i(TAG, "Starting to clear user settings...");
-        try {
-            Process process = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
-            os.writeBytes("rm -f /data/system/users/0/wallpaper\n");
-            os.writeBytes("rm -f /data/system/users/0/settings_system.xml\n");
-            os.writeBytes("rm -f /data/system/users/0/settings_secure.xml\n");
-            os.writeBytes("rm -f /data/system/users/0/settings_global.xml\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            process.waitFor();
-            Log.i(TAG, "Successfully cleared user settings.");
-        } catch (Exception e) {
-            Log.e(TAG, "Error clearing user settings: " + e.getMessage(), e);
-        }
-    }
-
-    public static void clearMediaFiles() {
-        Log.i(TAG, "Starting to clear media files...");
-        try {
-            Process process = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
-            os.writeBytes("rm -rf /sdcard/DCIM/*\n");
-            os.writeBytes("rm -rf /sdcard/Pictures/*\n");
-            os.writeBytes("rm -rf /sdcard/Movies/*\n");
-            os.writeBytes("rm -rf /sdcard/Download/*\n");
-            os.writeBytes("rm -rf /sdcard/Music/*\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            process.waitFor();
-            Log.i(TAG, "Successfully cleared media files.");
-        } catch (Exception e) {
-            Log.e(TAG, "Error clearing media files: " + e.getMessage(), e);
-        }
-    }
-
-    public static void clearMiscUserData() {
-        Log.i(TAG, "Starting to clear miscellaneous user data...");
-        try {
-            Process process = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
-            os.writeBytes("rm -rf /data/misc/profiles/*\n");
-            os.writeBytes("rm -rf /data/misc/clipboard/*\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            process.waitFor();
-            Log.i(TAG, "Successfully cleared miscellaneous user data.");
-        } catch (Exception e) {
-            Log.e(TAG, "Error clearing miscellaneous user data: " + e.getMessage(), e);
-        }
-    }
-
-    public static void clearBrowserData() {
-        Log.i(TAG, "Starting to clear browser data...");
-        try {
-            Process process = Runtime.getRuntime().exec("su");
-            DataOutputStream os = new DataOutputStream(process.getOutputStream());
-            os.writeBytes("pm clear com.android.browser\n");
-            os.writeBytes("pm clear com.google.android.chrome\n");
-            os.writeBytes("exit\n");
-            os.flush();
-            process.waitFor();
-            Log.i(TAG, "Successfully cleared browser data.");
-        } catch (Exception e) {
-            Log.e(TAG, "Error clearing browser data: " + e.getMessage(), e);
         }
     }
 
@@ -273,11 +250,7 @@ public class ResetPhoneStateHelper {
         closeAllApps(pm);
         uninstallUserApps(pm);    // Uninstall user apps and their data
         clearSystemAppData(pm);   // Clear data for system apps
-        removeAccountData(context); // Remove account data
-        clearUserSettings();      // Clear user settings
-        clearMediaFiles();        // Clear media files
-        clearMiscUserData();      // Clear miscellaneous user data
-        clearBrowserData();       // Clear browser data
+        removeAccountData(context);
         clearSystemCache();       // Clear system-wide cache
         Log.i(TAG, "Device reset completed.");
     }

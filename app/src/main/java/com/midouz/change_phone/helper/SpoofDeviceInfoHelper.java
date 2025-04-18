@@ -112,10 +112,26 @@ public class SpoofDeviceInfoHelper {
                         }
                     }
             );
+
+            XposedHelpers.findAndHookMethod(
+                    "com.google.android.gms.ads.identifier.AdvertisingIdClient$Info",
+                    lpparam.classLoader,
+                    "getId",
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            String spoofedAdId = spoofedDeviceProps.getProperty(SpoofPropConstant.AD_ID, java.util.UUID.randomUUID().toString());
+                            param.setResult(spoofedAdId);
+                            XposedBridge.log("===Xposed===: Spoofed AdvertisingIdClient$Info.getId to: " + spoofedAdId);
+                        }
+                    }
+            );
+
             XposedBridge.log("===Xposed===: Successfully hooked AdvertisingIdClient.getAdvertisingIdInfo for package: " + lpparam.packageName);
         } catch (Throwable t) {
             XposedBridge.log("===Xposed===: Failed to initialize hook for AdvertisingIdClient.getAdvertisingIdInfo for package: " + lpparam.packageName + ", error: " + t.getMessage());
         }
+
 
         // Hook: TelephonyManager.getSubscriberId (IMSI)
         XposedHelpers.findAndHookMethod(
@@ -358,6 +374,20 @@ public class SpoofDeviceInfoHelper {
                 }
         );
 
+        XposedHelpers.findAndHookMethod(
+                "java.net.InetAddress",
+                lpparam.classLoader,
+                "getHostAddress",
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        String spoofedIp = spoofedDeviceProps.getProperty(SpoofPropConstant.WIFI_IP, "10.0.0.117");
+                        param.setResult(spoofedIp);
+                        XposedBridge.log("===Xposed===: Spoofed InetAddress.getHostAddress to: " + spoofedIp);
+                    }
+                }
+        );
+
         // Hook: WebSettings.getDefaultUserAgent (USER_AGENT)
         try {
             XposedHelpers.findAndHookMethod(
@@ -384,6 +414,34 @@ public class SpoofDeviceInfoHelper {
         } catch (Throwable t) {
             XposedBridge.log("===Xposed===: Failed to initialize hook for WebSettings.getDefaultUserAgent for package: " + lpparam.packageName + ", error: " + t.getMessage());
         }
+
+        XposedHelpers.findAndHookMethod(
+                "android.webkit.WebView",
+                lpparam.classLoader,
+                "getSettings",
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        Object webSettings = param.getResult();
+                        XposedHelpers.callMethod(webSettings, "setUserAgentString", spoofedDeviceProps.getProperty(SpoofPropConstant.USER_AGENT));
+                        XposedBridge.log("===Xposed===: Set WebView user agent to: " + spoofedDeviceProps.getProperty(SpoofPropConstant.USER_AGENT));
+                    }
+                }
+        );
+
+        XposedHelpers.findAndHookMethod(
+                "android.content.pm.PackageManager",
+                lpparam.classLoader,
+                "getInstallerPackageName",
+                String.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        param.setResult("com.android.vending");
+                        XposedBridge.log("===Xposed===: Spoofed installer package to com.android.vending");
+                    }
+                }
+        );
 
         // Hook: Settings.Secure.getString (ANDROID_ID)
         XposedHelpers.findAndHookMethod(

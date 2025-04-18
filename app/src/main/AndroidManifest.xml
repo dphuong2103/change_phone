@@ -58,6 +58,7 @@
                 <action android:name="com.midouz.change_phone.UPDATE_SPOOF" />
             </intent-filter>
         </receiver>
+
         <receiver
             android:name=".receiver.SpoofedGeoReceiver"
             android:exported="true">
@@ -65,6 +66,7 @@
                 <action android:name="com.midouz.change_phone.SET_GEO" />
             </intent-filter>
         </receiver>
+
         <receiver
             android:name=".receiver.ResetPhoneStateReceiver"
             android:exported="true">
@@ -72,5 +74,14 @@
                 <action android:name="com.midouz.change_phone.RESET_PHONE_STATE" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".receiver.GeneralReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.midouz.change_phone.GENERAL_RECEIVER" />
+            </intent-filter>
+        </receiver>
+
     </application>
 </manifest>

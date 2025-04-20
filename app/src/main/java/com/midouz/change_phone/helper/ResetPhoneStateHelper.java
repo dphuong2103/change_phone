@@ -214,9 +214,8 @@ public class ResetPhoneStateHelper {
 
 
             // Re-enable Google services
-            Log.d(TAG, "Re-enabling Google services...");
-            os.writeBytes("pm enable com.google.android.gms\n");
-//            os.writeBytes("pm enable com.google.android.gsf\n");
+            Log.d(TAG, "Re-g Google services...");
+            os.writeBytes("pm enable com.google.android.gms\n");//            os.writeBytes("g\n");
 
             // Re-enable network
             Log.d(TAG, "Re-enabling network...");
